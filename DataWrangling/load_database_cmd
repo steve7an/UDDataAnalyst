@@ -1,0 +1,11 @@
+### Load DB using terminal
+Instead of running the data import using python script, a more efficient way is via the mongoimport command line which can better handle the import of larger files. Hence that's the chosen steps that we will follow to import the OSM data into our mongo database.
+
+mongo sample --eval "db.dropDatabase()"
+
+mongoimport --db sample --collection osm --file /Users/stevetan/Dropbox/0udacity/data\ analyst\ nanodegree/datawrangling/project/sample.osm.json
+
+
+#### Loading of the cleanup Singapore dataset
+
+mongoimport --db singapore --collection osm --file /Users/stevetan/Dropbox/0udacity/data\ analyst\ nanodegree/datawrangling/project/singapore.osm2.json
