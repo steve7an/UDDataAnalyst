@@ -1,0 +1,87 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#### References
+1. https://flowingdata.com/2015/02/18/loading-data-and-basic-formatting-in-r/
+1. https://www.statmethods.net/management/subset.html
+1. https://redditblog.com/2011/09/12/who-in-the-world-is-reddit-results-are-in/
+1. https://www.statmethods.net/input/datatypes.html
+1. https://stats.idre.ucla.edu/r/modules/factor-variables/
+
+#### Shortcuts
+1. Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+1. Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+1. When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
+
+```{r}
+getwd()
+setwd('/Users/stevetan/Dropbox/0udacity/data analyst nanodegree/eda/')
+statesInfo = read.csv("stateData.csv")
+View (statesInfo)
+```
+
+```{r}
+stateSubset <- subset(statesInfo, murder > 10)
+head (stateSubset)
+dim (stateSubset)
+
+stateSubsetBracket <- statesInfo[statesInfo$murder > 10,]
+head (stateSubsetBracket)
+dim (stateSubsetBracket)
+
+```
+
+```{r}
+?cars
+str(cars)
+```
+
+To embed files
+
+```{r}
+plot(cars)
+```
+Testing tables
+```{r}
+reddit <- read.csv("reddit.csv")
+str(reddit)
+print ("summary")
+summary(reddit)
+print ("table")
+table(reddit$employment.status)
+```
+Ordered factors
+
+```{r}
+levels(reddit$age.range)
+
+library(ggplot2)
+qplot(data=reddit, x= age.range)
+```
+
+```{r}
+# Order the factor levels in the age.range variable in order to create
+# a graph with a natural order. Look up the documentation for
+# the factor function or read through the example in the Instructor Notes.
+
+# Once you're ready, try to write the code to order the levels of
+# the age.range variable.
+
+# Be sure you modify the variable in the data frame. That is modify reddit$age.range.
+# Don't create a new variable.
+
+# The levels of age.range should take on these values...
+
+#    "Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65 or Above"
+
+# This exercise is ungraded. You can check your own work by using the Test Run
+# button. Your plot will appear there.
+
+# ENTER YOUR CODE BELOW THE LINE.
+# ================================================================================
+
+
+```
+
