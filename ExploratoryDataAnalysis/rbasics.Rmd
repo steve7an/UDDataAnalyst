@@ -9,6 +9,9 @@ output: html_notebook
 1. https://redditblog.com/2011/09/12/who-in-the-world-is-reddit-results-are-in/
 1. https://www.statmethods.net/input/datatypes.html
 1. https://stats.idre.ucla.edu/r/modules/factor-variables/
+1. http://courses.had.co.nz.s3-website-us-east-1.amazonaws.com/12-rice-bdsi/slides/07-tidy-data.pdf
+1. http://vita.had.co.nz/papers/tidy-data.pdf
+
 
 #### Shortcuts
 1. Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
@@ -56,6 +59,8 @@ Ordered factors
 
 ```{r}
 levels(reddit$age.range)
+
+reddit$age.range <-factor(reddit$age.range, levels = c("Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65 or Above"))
 
 library(ggplot2)
 qplot(data=reddit, x= age.range)
