@@ -28,14 +28,13 @@ summary(diamonds$color)
 str(diamonds)
 ```
 
+```{r pressure, echo=FALSE}
 # Create a histogram of the price of
 # all the diamonds in the diamond data set.
 
 # TYPE YOUR CODE BELOW THE LINE
 # =======================================
 
-
-```{r pressure, echo=FALSE}
 summary(diamonds$price)
 
 qplot(data=diamonds, x=price, 
@@ -56,13 +55,14 @@ print (sum(diamonds$price >= 15000))
 
 ```
 
+```{r}
 # Explore the largest peak in the
 # price histogram you created earlier.
 
 # Try limiting the x-axis, altering the bin width,
 # and setting different breaks on the x-axis.
 
-# There won’t be a solution video for this
+# There won???t be a solution video for this
 # question so go to the discussions to
 # share your thoughts and discover
 # what other people find.
@@ -81,7 +81,6 @@ print (sum(diamonds$price >= 15000))
 # TYPE YOUR CODE BELOW THE LINE
 # ======================================================================
 
-```{r}
 qplot(data=diamonds, x=price, binwidth=1,
       color=I('#099DD9'), fill=I('#099DD9'),
       xlab = "Price of Diamonds", ylab= "Number of Diamonds") +
@@ -144,6 +143,7 @@ table(cutddata)
 names(sort(-table(cutddata)))[1]
 ```
 
+```{r}
 # Break out the histogram of diamond prices by cut.
 
 # You should have five histograms in separate
@@ -151,7 +151,7 @@ names(sort(-table(cutddata)))[1]
 
 # TYPE YOUR CODE BELOW THE LINE
 # ======================================================
-```{r}
+
 minvalue = 0
 maxvalue = 19000
 levels(diamonds$cut)
@@ -195,6 +195,9 @@ qplot(data=diamonds, x=price, color=I('black'), fill=I("blue"), binwidth=300,
         facet_wrap(~cut)
 ```
 
+
+
+```{r}
 # In the two last exercises, we looked at
 # the distribution for diamonds by cut.
 
@@ -203,20 +206,21 @@ qplot(data=diamonds, x=price, color=I('black'), fill=I("blue"), binwidth=300,
 
 # ===============================================================
 
-```{r}
 qplot(x = price, data = diamonds) + facet_wrap(~cut)
 ```
 
+
+```{r}
 # Look up the documentation for facet_wrap in R Studio.
 # Then, scroll back up and add a parameter to facet_wrap so that
 # the y-axis in the histograms is not fixed. You want the y-axis to
 # be different for each histogram.
 
-```{r}
 qplot(x = price, data = diamonds) + facet_wrap(~cut,  scales="free_y")
 ```
 
 
+```{r}
 # Create a histogram of price per carat
 # and facet it by cut. You can make adjustments
 # to the code from the previous exercise to get
@@ -229,7 +233,7 @@ qplot(x = price, data = diamonds) + facet_wrap(~cut,  scales="free_y")
 
 # ENTER YOUR CODE BELOW THIS LINE.
 # ===========================================================================
-```{r}
+
 qplot(x = log10(price), data = diamonds) + facet_wrap(~cut,  scales="free_y")
 ```
 
@@ -241,11 +245,13 @@ facet_wrap(~cut,  scales="free_y") +
 ```
 
 
+
+```{r}
 # Investigate the price of diamonds using box plots,
 # numerical summaries, and one of the following categorical
 # variables: cut, clarity, or color.
 
-# There won’t be a solution video for this
+# There won???t be a solution video for this
 # exercise so go to the discussion thread for either
 # BOXPLOTS BY CLARITY, BOXPLOT BY COLOR, or BOXPLOTS BY CUT
 # to share you thoughts and to
@@ -264,11 +270,192 @@ facet_wrap(~cut,  scales="free_y") +
 # your investigation, and submit it when you are ready.
 # =================================================================
 
-```{r}
+
 qplot(x = color, y= price, data = diamonds, geom = "boxplot")
 ggsave(filename="priceColorBoxplot.png", width = 15, height = 4, dpi = 75, units = "in", device='png')
-```
-```{r}
+
 tapply(diamonds$price, diamonds$color, summary)
+```
+
+## Analysis
+1. Suprisingly the color which are worst off is actually more expensive than better colors, the median price for colors, H, I and J was higher than the rest of the colors. 
+
+```{r}
+IQR(subset(diamonds, color == "D")$price)
+
+IQR(subset(diamonds, color == "J")$price)
+```
+
+```{r}
+# Investigate the price per carat of diamonds across
+# the different colors of diamonds using boxplots.
+
+# Go to the discussions to
+# share your thoughts and to discover
+# what other people found.
+
+# You can save images by using the ggsave() command.
+# ggsave() will save the last plot created.
+# For example...
+#                  qplot(x = price, data = diamonds)
+#                  ggsave('priceHistogram.png')
+
+# ggsave currently recognises the extensions eps/ps, tex (pictex),
+# pdf, jpeg, tiff, png, bmp, svg and wmf (windows only).
+
+# Copy and paste all of the code that you used for
+# your investigation, and submit it when you are ready.
+
+# SUBMIT YOUR CODE BELOW THIS LINE
+# ===================================================================
+ggplot(diamonds, aes(x = color, y= price/carat, fill=color)) +
+            geom_boxplot()
+ggsave(filename="pricePerCaratColorBoxplot.png", width = 15, height = 4, dpi = 75, units = "in", device='png')
+
+tapply(diamonds$price/diamonds$carat, diamonds$color, summary)
+```
+
+
+## Analysis
+1. When the boxplot are rescaled to show price per carat, we can see a closer distribution range against all colors. However we are still able to observe a higher median price for the worst off colors from H to J.
+1. We also notice that the best colors range from D to G, has a wider outlier prices.
+
+## Carat Freq Polygon
+
+```{r}
+qplot(data=diamonds, x=carat, color=carat, geom="freqpoly", binwidth=0.01) +
+ scale_x_continuous(limits = c(0.1,2.2), breaks = seq(0.1, 2.2, 0.1))
+
+```
+
+## References
+1. https://s3.amazonaws.com/udacity-hosted-downloads/ud651/DataWranglingWithR.pdf
+
+```{r}
+library(dplyr)
+
+view(diamonds)
+
+```
+
+## Notes:
+1. https://www.youtube.com/watch?v=jbkSRLYSojo
+1. http://docs.google.com/spreadsheet/pub?key=pyj6tScZqmEfbZyl0qjbiRQ&output=xlsx
+
+```{r}
+# The Gapminder website contains over 500 data sets with information about
+# the world's population. Your task is to download a data set of your choice
+# and create 2-5 plots that make use of the techniques from Lesson 3.
+
+# You might use a simple histogram, a boxplot split over a categorical variable,
+# or a frequency polygon. The choice is yours!
+
+# You can find a link to the Gapminder website in the Instructor Notes.
+
+# Once you've completed your investigation, create a post in the discussions that includes:
+#       1. any questions you answered, your observations, and summary statistics
+#       2. snippets of code that created the plots
+#       3. links to the images of your plots
+
+# You can save images by using the ggsave() command.
+# ggsave() will save the last plot created.
+# For example...
+#                  qplot(x = price, data = diamonds)
+#                  ggsave('priceHistogram.png')
+
+# ggsave currently recognises the extensions eps/ps, tex (pictex),
+# pdf, jpeg, tiff, png, bmp, svg and wmf (windows only).
+
+# Copy and paste all of the code that you used for
+# your investigation, and submit it when you are ready.
+
+## Using the dataset from Adults with HIV (%, age 15-49) - save the first sheet as csv file to begin
+data <- read.csv('data.csv', header = T, row.names = 1, check.names = F)
+df <- as.data.frame(t(data))
+
+## find the top five countries with the worst HIV rate
+country_max_val <- apply(df, 2, mean, na.rm=T)
+print ("Top 5 worst countries:")
+head(sort(country_max_val, T), 5)
+print ("Top 5 best countries:")
+head(sort(country_max_val, F), 5)
+
+#names(df) <- make.names(names(df))
+#names(df)
+
+saveChartAsPng <- function(outputfilename){
+    ggsave(filename=outputfilename, width = 15, height = 4, dpi = 75, units = "in", device='png')
+
+}
+
+plotLineChart <- function(dat, outputfilename) {
+
+    ggplot(aes(y=Count,x=years,group=Country),data=dat)+
+        geom_line(aes(color=Country))+
+        geom_point(aes(color=Country))+
+        scale_x_continuous(limits=c(1979,2011))+
+        xlab('Year')+
+        ylab('Estimated HIV Prevalence% - (Ages 15-49)')+
+        ggtitle('Prevalence of HIV Over Time')
+}
+
+worstdata <- select(df, Botswana, Zimbabwe, Lesotho, Swaziland, Zambia)
+worstdata$years <- 1979:2011
+worstdata<-gather(worstdata,'Country','Count',1:5)
+
+plotLineChart(worstdata)
+saveChartAsPng("HivWorstOverTime.png")
+
+bestdata <- select(df, Afghanistan, Bangladesh, China, Croatia, `Czech Republic`)
+bestdata$years <- 1979:2011
+bestdata<-gather(bestdata,'Country','Count',1:5)
+plotLineChart(bestdata)
+saveChartAsPng("HivBestOverTime.png")
+
+#summary(data)
+```
+
+## Analysis over time
+1. It appears that the top three country that is getting it worst are Botswana, Swaziland and Lesotho.
+1. And out of these three countries, it would appears the situation in Swaziland is getting worst.
+1. Whereas Zambia is showing a steady decline and the situation in Zimbabwe has improved a lot with a sharp drop.
+
+## Questions Adults with HIV (%, age 15-49)
+1. Which country has the worst percentage?
+1. Which country has the best percentage?
+
+```{r}
+
+plotBoxPlot <- function(dat){
+    ggplot(dat, aes(x = Country, y= Count, fill= Country)) +
+            geom_boxplot() +
+            xlab('Country')+
+            ylab('Estimated HIV Prevalence% - (Ages 15-49)')+
+            ggtitle('Prevalence of HIV Per Country')
+}
+
+plotBoxPlot(worstdata)
+saveChartAsPng("WorstHivPerCountry.png")
+
+plotBoxPlot(bestdata)
+saveChartAsPng("BestHivPerCountry.png")
+
+```
+
+## Analysis by Country
+1. Just as what we saw in the time series chart, the top three worst countries is showing a higher median value as well as a wider spread of values in the HIV%.
+1. Zambia which have been showing a steady decline has a very narrow spread of values.
+1. Zimbabwe that is showing a sharp decline in the HIV% has a lower media but is still showing high values in terms of the HIV% range.
+
+## Additional reference
+1. Swaziland had it worst due to the cultural norm regarding sexuality and a financial crisis https://www.theguardian.com/world/2012/apr/11/aids-ignorance-swaziland-struggles-funds
+1. During roughly the same period, Zimbabwe has seen success with it's AIDS levy to increase domestic resources for the national HIV programme, which have supported the prevention and treatment of HIV services to the local community.
+
+```{r}
+qplot(x = Count, data = worstdata, fill=Country) + facet_wrap(~Country) 
+
+qplot(x = Count, data = worstdata, fill=Country) + facet_wrap(~Country) +
+    scale_x_log10()
+
 ```
 
