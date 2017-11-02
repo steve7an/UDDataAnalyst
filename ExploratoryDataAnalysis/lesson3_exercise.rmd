@@ -449,7 +449,7 @@ saveChartAsPng("BestHivPerCountry.png")
 
 ## Additional reference
 1. Swaziland had it worst due to the cultural norm regarding sexuality and a financial crisis https://www.theguardian.com/world/2012/apr/11/aids-ignorance-swaziland-struggles-funds
-1. During roughly the same period, Zimbabwe has seen success with it's AIDS levy to increase domestic resources for the national HIV programme, which have supported the prevention and treatment of HIV services to the local community.
+1. During roughly the same period, Zimbabwe has seen success with it's AIDS levy to increase domestic resources for the national HIV programme, which have supported the prevention and treatment of HIV services to the local community. http://www.unaids.org/en/resources/presscentre/featurestories/2012/may/20120528fszimbabwe
 
 ```{r}
 qplot(x = Count, data = worstdata, fill=Country) + facet_wrap(~Country) 
@@ -458,4 +458,155 @@ qplot(x = Count, data = worstdata, fill=Country) + facet_wrap(~Country) +
     scale_x_log10()
 
 ```
+
+## Data source
+1. By exporting all the birthday events from Facebook and importing the URL into Apple Calendar app.
+1. Proceed to export the ical file from the Calendar app.
+1. Next step is to use this free online too, ics2csv, to convert the ical file to csv.
+
+```{r}
+# Your task is to investigate the distribution of your friends'
+# birth months and days.
+
+# Here some questions you could answer, and we hope you think of others.
+
+# **********************************************************************
+
+# How many people share your birthday? Do you know them?
+# (Reserve time with them or save money to buy them a gift!)
+
+# Which month contains the most number of birthdays?
+
+# How many birthdays are in each month?
+
+# Which day of the year has the most number of birthdays?
+
+# Do you have at least 365 friends that have birthdays on everyday
+# of the year?
+
+# **********************************************************************
+
+# You will need to do some data munging and additional research to
+# complete this task. This task won't be easy, and you may encounter some
+# unexpected challenges along the way. We hope you learn a lot from it though.
+
+# You can expect to spend 30 min or more on this task depending if you
+# use the provided data or obtain your personal data. We also encourage you
+# to use the lubridate package for working with dates. Read over the documentation
+# in RStudio and search for examples online if you need help.
+
+# You'll need to export your Facebooks friends' birthdays to a csv file.
+# You may need to create a calendar of your Facebook friends??? birthdays
+# in a program like Outlook or Gmail and then export the calendar as a
+# csv file.
+
+# Once you load the data into R Studio, you can use the strptime() function
+# to extract the birth months and birth days. We recommend looking up the
+# documentation for the function and finding examples online.
+
+# We've included some links in the Instructor Notes to help get you started.
+
+# Once you've completed your investigation, create a post in the discussions
+# that includes:
+#   1. any questions you answered, your observations, and summary statistics
+#   2. snippets of code that created the plots
+#   3. links to the images of your plots
+
+# You can save images by using the ggsave() command.
+# ggsave() will save the last plot created.
+# For example...
+#                  qplot(x = price, data = diamonds)
+#                  ggsave('priceHistogram.png')
+
+# ggsave currently recognises the extensions eps/ps, tex (pictex),
+# pdf, jpeg, tiff, png, bmp, svg and wmf (windows only).
+
+# Copy and paste all of the code that you used for
+# your investigation below the line. Submit it when you are ready.
+# ===============================================================================
+
+## Date preparation - convert the birthdate column into Date format and extract out the day and month into individual column.
+library(lubridate)
+#OlsonNames()
+#ymd("20110604", tz="Asia/Singapore")
+
+dobdf <- read.csv('dob.csv', header = T, row.names = NULL, check.names = F)
+dobdf <- as.data.frame(dobdf)
+
+# convert the date to Date object for easier manipulation later
+dobdf$DTSTART <- as.Date(dobdf$DTSTART)
+# just takes the data for one whole year
+#dobdf <- subset(dobdf, format.Date(DTSTART, "%y")=="18")
+
+dobdf$month <- month(dobdf$DTSTART)
+dobdf$monthname <- factor(months(dobdf$DTSTART, abbreviate = T), month.abb, ordered=T)
+dobdf$day <- day(dobdf$DTSTART)
+
+
+## Data analysis
+
+# How many friends birthday there are in a year?
+print (length(dobdf$DTSTART))
+
+print ("How many birthday every day of the month?")
+table(dobdf$day)
+
+print("How many birthday every month?")
+table(dobdf$monthname)
+
+# How many people share your birthday? Do you know them?
+samedob <- subset(dobdf, format.Date(DTSTART, "%m")=="4" & format.Date(DTSTART, "%d")=="27")
+print (count(samedob))
+
+#str(dobdata)
+#?apply
+
+?table
+
+```
+
+```{r}
+## Data plotting
+
+# Which day of the year has the most number of birthdays?
+qplot(data=dobdf, x=day, color=I('black'), fill=I("orange"), binwidth=1, 
+          xlab = "Day of the month", ylab= "Count") +
+        scale_x_continuous(breaks=seq(1,31, 1)) +
+            ggtitle('Which day of the month has the most number of birthdays?')
+ggsave(filename="BirthdayPerMonth.png", width = 15, height = 4, dpi = 75, units = "in", device='png')
+
+## That would be on the 8th.
+
+# Which month contains the most number of birthdays?
+qplot(data=dobdf, x=month, color=I('black'), fill=I("blue"), binwidth=1, 
+          xlab = "Month of the year", ylab= "Count") +
+            scale_x_continuous(breaks=seq(1,12, 1)) +
+            ggtitle('Which month contains the most number of birthdays?')
+ggsave(filename="BirthMonthPerYear.png", width = 15, height = 4, dpi = 75, units = "in", device='png')
+
+## There's a lot of September babies
+
+# Which day of the year has the most number of birthdays?
+qplot(x = day, data = dobdf, fill=month, binwidth=1,
+     xlab = "Day of the month", ylab= "Count") +
+    ggtitle('Which day of the year has the most number of birthdays?') +
+    facet_wrap(~monthname, ncol= 3) +
+    scale_x_continuous(breaks=seq(1,31, 1))
+ggsave(filename="BirthdayPerYear.png", width = 15, height = 4, dpi = 75, units = "in", device='png')
+
+## 7/Jul, 24/Jul, 19/Sep, 19/Dec
+
+```
+
+## Answers
+1. That would be on the 8th.
+1. There's a lot of September babies.
+1. 7/Jul, 24/Jul, 19/Sep, 19/Dec.
+
+## Notes
+1. https://www.facebook.com/help/152652248136178/
+1. https://www.r-bloggers.com/date-formats-in-r/
+1. https://support.google.com/calendar/answer/37111?hl=en
+1. http://www.indigoblue.eu/ics2csv/
+1. https://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html
 
