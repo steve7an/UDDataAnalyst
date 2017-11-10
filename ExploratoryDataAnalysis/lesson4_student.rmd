@@ -1,0 +1,442 @@
+Lesson 4
+========================================================
+
+***
+
+### Scatterplots and Perceived Audience Size
+Notes:
+1. https://classroom.udacity.com/courses/ud651/lessons/755618712/concepts/8140986010923
+1. http://hci.stanford.edu/publications/2013/invisibleaudience/invisibleaudience.pdf
+
+***
+
+### Scatterplots
+Notes:
+
+```{r Scatterplots}
+library(ggplot2)
+pf <- read.csv("pseudo_facebook.tsv", sep="\t")
+
+qplot(x = age, y = friend_count, data = pf)
+
+```
+
+***
+
+#### What are some things that you notice right away?
+Response:
+That the distribution of the data isn't normal.
+It appears that a lot of data are on the left and right of the chart.
+And there's also a spike of friends count for users who is around 70 years old.
+***
+
+### ggplot Syntax
+Notes:
+1. http://ggplot2.tidyverse.org/reference/
+1. http://bbs.ceb-institute.org/wp-content/uploads/2011/09/handout_ggplot2.pdf
+
+```{r ggplot Syntax}
+ggplot(data =pf, aes(x= age, y= friend_count)) +
+    geom_point() + 
+    scale_x_continuous(breaks=seq(13,90, 2), limits = c(13,90))
+
+summary(pf$age)
+
+```
+
+***
+
+### Overplotting
+Notes:
+1. http://ggplot2.tidyverse.org/reference/geom_point.html
+
+```{r Overplotting}
+# it will take twenty friend count to get a dark dot
+ggplot(data = pf, aes(x=age, y=friend_count)) + 
+    geom_jitter(alpha=1/20) +
+    xlim(13, 90)
+
+```
+
+#### What do you notice in the plot?
+Response:
+That the data is a bit more spread out now.
+There's still a high concentration of  younger users with high friends  count which seems normal.
+The users that are roughly 70 years old have  have a common friends count of less than 1500. And those that have a friend count of more than 1,500 isn't that common.
+***
+
+### Coord_trans()
+Notes:
+1. http://ggplot2.tidyverse.org/reference/coord_trans.html
+
+```{r Coord_trans()}
+
+```
+
+#### Look up the documentation for coord_trans() and add a layer to the plot that transforms friend_count using the square root function. Create your plot!
+
+```{r}
+ggplot(data = pf, aes(x=age, y=friend_count)) + 
+    geom_jitter(alpha=1/20, position=position_jitter(h = 0)) +
+    xlim(13, 90) +
+    coord_trans(y="sqrt")
+
+ggplot(data = pf, aes(x=age, y=friend_count)) + 
+    geom_point(alpha=1/20) +
+    xlim(13, 90) +
+    coord_trans(y="sqrt")
+
+```
+
+#### What do you notice?
+That the values are mo spread out for users below the age of 25.
+By sqrt the y, it makes the users with a friend count of below 1000 easier to spot.
+***
+
+### Alpha and Jitter
+Notes:
+1. http://ggplot2.tidyverse.org/reference/position_jitter.html
+
+```{r Alpha and Jitter}
+# This programming assignment
+# will not be graded, but when you
+# submit your code, the assignment
+# will be marked as correct. By submitting
+# your code, we can add to the feedback
+# messages and address common mistakes
+# in the Instructor Notes.
+
+# You can assess your work by watching
+# the solution video.
+
+
+# Examine the relationship between
+# friendships_initiated (y) and age (x)
+# using the ggplot syntax.
+ggplot(data= pf, aes(x =age, y=friendships_initiated)) +
+    geom_point(show.legend = T) 
+
+# We recommend creating a basic scatter
+# plot first to see what the distribution looks like.
+# and then adjusting it by adding one layer at a time.
+ggplot(data= pf, aes(x =age, y=friendships_initiated)) +
+    geom_jitter(show.legend = T, alpha = 1/20) +
+    scale_x_continuous(breaks=seq(13,90, 2), limits = c(13,90))
+
+ggplot(data= pf, aes(x =age, y=friendships_initiated)) +
+    geom_jitter(show.legend = T, alpha = 1/20, position = position_jitter(h=0)) +
+    scale_x_continuous(breaks=seq(13,90, 2), limits = c(13,90)) +
+    coord_trans(y = "sqrt")
+
+# What are your observations about your final plot?
+#1. Resemble the friend count's plot, which we see a high number of users with friends count which are below the age of 25.
+#1. We also see the similar spike for the user around the age of 68.
+#1. There appears to be more users who are above the age of 73 that doesn't have low friendship initiated count.
+
+# Remember to make adjustments to the breaks
+# of the x-axis and to use apply alpha and jitter.
+
+# ENTER ALL OF YOUR CODE FOR YOUR PLOT BELOW THIS LINE.
+# =======================================================
+
+```
+
+## plot analysis
+1. Resemble the friend count's plot, which we see a high number of users with friends count which are below the age of 25.
+1. We also see the similar spike for the user around the age of 68.
+1. There appears to be more users who are above the age of 73 that doesn't have low friendship initiated count.
+
+***
+
+### Overplotting and Domain Knowledge
+Notes:
+
+***
+
+### Conditional Means
+Notes:
+1. https://blog.rstudio.com/2014/01/17/introducing-dplyr/
+1. https://www.r-bloggers.com/hadley-wickham-presents-dplyr-at-user-2014/
+1. https://www.r-bloggers.com/hadley-wickhams-dplyr-tutorial-at-user-2014-part-1/
+1. https://www.r-bloggers.com/hadley-wickhams-dplyr-tutorial-at-user-2014-part-2/
+1. https://rollingyours.wordpress.com/2014/10/20/the-lapply-command-101/
+1. http://ggplot2.tidyverse.org/reference/geom_path.html
+
+```{r Conditional Means}
+library(dplyr)
+
+age_groups <- group_by(pf, age)
+pf.fc_by_age <- summarise(age_groups, 
+        fc_mean = mean(friend_count),
+        fc_median = median(friend_count),
+        n = n())
+pf.fc_by_age <- arrange(pf.fc_by_age, age)
+
+## an alternative way to get this done
+pf.fc_by_age <- pf %>%
+    group_by(age) %>%
+    summarise(fc_mean = mean(friend_count),
+              fc_median = median(friend_count),
+              n = n()) %>%
+    arrange(age)
+
+
+head(pf.fc_by_age)
+```
+
+Create your plot!
+
+```{r Conditional Means Plot}
+# This programming assignment
+# will not be graded, but when you
+# submit your code, the assignment
+# will be marked as correct. By submitting
+# your code, we can add to the feedback
+# messages and address common mistakes
+# in the Instructor Notes.
+
+# You can assess your work by watching
+# the solution video.
+
+
+# Plot mean friend count vs. age using a line graph.
+# Be sure you use the correct variable names
+# and the correct data frame. You should be working
+# with the new data frame created from the dplyr
+# functions. The data frame is called 'pf.fc_by_age'.
+
+# Use geom_line() rather than geom_point to create
+# the plot. You can look up the documentation for
+# geom_line() to see what it does.
+
+# ENTER ALL OF YOUR CODE TO CREATE THE PLOT BELOW THIS LINE.
+# ===========================================================
+ggplot(data = pf.fc_by_age, aes(x=age, y=fc_mean)) +
+    geom_line() +
+    scale_x_continuous(breaks=seq(13, 120, 3), limits = c(13,120))
+
+```
+
+***
+
+### Overlaying Summaries with Raw Data
+Notes:
+1. http://www.r-tutor.com/elementary-statistics/numerical-measures/percentile
+
+```{r Overlaying Summaries with Raw Data}
+
+#scale_y_continuous is used for subsetting the data with the help of xlim and ylim
+#coord_cartesian is used to zoom in on a plot programatically
+
+#ggplot(data = pf, aes(x=age, y=friend_count)) +
+#    coord_cartesian(xlim(13, 90), ylim=c(0,1000)) +
+#    geom_point(alpha=1/20)
+    #+ geom_line(stat="summary", fun.y = mean)
+    #+ geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.1), linetype=2, color="orange")
+    #+ geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.9), linetype=2, color="orange")
+    #+ geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.5), linetype=2, color="orange")
+
+ggplot(data = pf, aes(x=age, y=friend_count)) + 
+    scale_x_continuous(limit = c(13, 70)) + 
+    scale_y_continuous(limit = c(0,1000)) +
+    coord_trans(y="sqrt") +
+    geom_point(alpha=1/20, position=position_jitter(h = 0), color="blue") +
+    geom_line(stat="summary", fun.y = mean) +
+    geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.1), linetype=2, color="orange") +
+    geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.5), linetype=2, color="orange") +
+    geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.9), linetype=2, color="orange")
+ggsave(filename="overlayRawData.png", width = 15, height = 4, dpi = 75, units = "in", device='png')
+
+```
+
+```{r}
+ggplot(data = pf, aes(x=age, y=friend_count)) + 
+    coord_cartesian(xlim=c(13,70), ylim=c(0,1000)) +
+    geom_point(alpha=1/20, position=position_jitter(h = 0), color="blue") +
+    geom_line(stat="summary", fun.y = mean) +
+    geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.1), linetype=2, color="orange") +
+    geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.5), linetype=2, color="orange") +
+    geom_line(stat="summary", fun.y= quantile, fun.args = list(probs=.9), linetype=2, color="orange")
+```
+
+#### What are some of your observations of the plot?
+Response:
+1. Most users have less than 250 friends.
+1. The upper fifty percent have a wider range of friends. That explains why the median is higher than the 50% quintile value.
+
+
+***
+
+### Moira: Histogram Summary and Scatterplot
+See the Instructor Notes of this video to download Moira's paper on perceived audience size and to see the final plot.
+
+Notes:
+1. the histogram that she created wasn't really intuitive on first view and require additional explanation to make it clear what she was comparing against.
+
+***
+
+### Correlation
+Notes:
+1. https://s3.amazonaws.com/udacity-hosted-downloads/ud651/correlation_images.jpeg
+1. http://www.r-tutor.com/elementary-statistics/numerical-measures/correlation-coefficient
+1. https://classroom.udacity.com/courses/ud201/lessons/1345848540/concepts/1715827370923
+
+```{r Correlation}
+cor.test(pf$age, pf$friend_count, method='pearson')
+
+round(cor(pf$age, pf$friend_count),3)
+
+with(pf, cor.test(age, friend_count, method='pearson'))
+```
+
+Look up the documentation for the cor.test function.
+
+What's the correlation between age and friend count? Round to three decimal places.
+Response:
+
+***
+
+### Correlation on Subsets
+Notes:
+
+```{r Correlation on Subsets}
+with(                 , cor.test(age, friend_count))
+```
+
+***
+
+### Correlation Methods
+Notes:
+
+***
+
+## Create Scatterplots
+Notes:
+
+```{r}
+
+```
+
+***
+
+### Strong Correlations
+Notes:
+
+```{r Strong Correlations}
+
+```
+
+What's the correlation betwen the two variables? Include the top 5% of values for the variable in the calculation and round to 3 decimal places.
+
+```{r Correlation Calcuation}
+
+```
+
+Response:
+
+***
+
+### Moira on Correlation
+Notes:
+
+***
+
+### More Caution with Correlation
+Notes:
+
+```{r More Caution With Correlation}
+install.packages('alr3')
+library(alr3)
+```
+
+Create your plot!
+
+```{r Temp vs Month}
+
+```
+
+***
+
+### Noisy Scatterplots
+a. Take a guess for the correlation coefficient for the scatterplot.
+
+b. What is the actual correlation of the two variables?
+(Round to the thousandths place)
+
+```{r Noisy Scatterplots}
+
+```
+
+***
+
+### Making Sense of Data
+Notes:
+
+```{r Making Sense of Data}
+
+```
+
+***
+
+### A New Perspective
+
+What do you notice?
+Response:
+
+Watch the solution video and check out the Instructor Notes!
+Notes:
+
+***
+
+### Understanding Noise: Age to Age Months
+Notes:
+
+```{r Understanding Noise: Age to Age Months}
+
+```
+
+***
+
+### Age with Months Means
+
+```{r Age with Months Means}
+
+```
+
+Programming Assignment
+```{r Programming Assignment}
+
+```
+
+***
+
+### Noise in Conditional Means
+
+```{r Noise in Conditional Means}
+
+```
+
+***
+
+### Smoothing Conditional Means
+Notes:
+
+```{r Smoothing Conditional Means}
+
+```
+
+***
+
+### Which Plot to Choose?
+Notes:
+
+***
+
+### Analyzing Two Variables
+Reflection:
+
+***
+
+Click **KnitHTML** to see all of your hard work and to have an html
+page of this lesson, your answers, and your notes!
+
