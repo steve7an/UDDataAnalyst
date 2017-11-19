@@ -332,9 +332,13 @@ qplot(data=diamonds, x=carat, color=carat, geom="freqpoly", binwidth=0.01) +
 1. https://s3.amazonaws.com/udacity-hosted-downloads/ud651/DataWranglingWithR.pdf
 
 ```{r}
+#install.packages("dplyr")
 library(dplyr)
+#install.packages("tidyr")
+library(tidyr)
+library(ggplot2)
 
-view(diamonds)
+#View(diamonds, "Diamonds")
 
 ```
 

@@ -9,6 +9,7 @@ Lesson 3
 1. http://ggplot2.tidyverse.org/reference/scale_continuous.html
 1. https://www.statmethods.net/input/missingdata.html
 1. http://ggplot2.tidyverse.org/reference/theme.html
+1. https://s3.amazonaws.com/udacity-hosted-downloads/ud651/pseudo_facebook.tsv
 
 ***
 
@@ -40,7 +41,7 @@ library(ggthemes)
 Notes:
 
 ```{r Histogram of Users\' Birthdays}
-#install.packages('ggplot2')
+install.packages('ggplot2')
 library(ggplot2)
 
 ggplot(aes(x = dob_day), data = pf) +
@@ -290,7 +291,7 @@ summary (log10(pf$friend_count + 1))
 
 summary (sqrt(pf$friend_count))
 
-#install.packages('gridExtra')
+install.packages('gridExtra')
 library(gridExtra)
 
 p2 = qplot(data=pf, x=log10(pf$friend_count), color=I('black'), fill=I('orange'),
@@ -370,7 +371,8 @@ Notes:
 
 ```{r Box Plots}
 qplot(data= subset(pf,!is.na(gender) & friend_count < 1000),
-                   x=gender, y=friend_count, geom='boxplot')
+                   x=gender, y=friend_count, geom='boxplot') +
+  
 ```
 
 #### Adjust the code to focus on users who have friend counts between 0 and 1000.
@@ -411,7 +413,7 @@ names(pf)
 
 qplot(data= subset(pf,!is.na(gender)),
                    x=gender, y=friendships_initiated, geom='boxplot') +
-    coord_cartesian(ylim = c(0,250))
+    coord_cartesian(ylim = c(0,150))
 
 by(pf$friendships_initiated, pf$gender, summary)
 ```
@@ -419,6 +421,7 @@ by(pf$friendships_initiated, pf$gender, summary)
 Response:
 
 ***
+I did a boxplot comparison against gender and friendship initiated to get a first overview of the data spread between the two groups. It does appears that female group has a slightly median value. Thus to zoom in on the exact value, I use the by function to get the summary value of the dataset. And indeed the female group has a higher median value of 49 versus the male group which has a median value of 44. Comparing against the mean value as well, that proves to be consistent with the female group has a higher average value at 113.9 versus the male group with a mean value of 103.1
 
 ### Getting Logical
 Notes:
