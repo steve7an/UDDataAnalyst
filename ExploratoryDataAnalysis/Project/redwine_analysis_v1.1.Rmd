@@ -1,0 +1,774 @@
+Red Wine Quality Analysis by Steve T
+========================================================
+
+### Abstract
+According to the references, the Chinese are currently the world's biggest red wine consumers but in terms of per capita basis, the French is still rocking it. So it's well known as a good practice to have a glass of red wine a day, but what actually determines the quality of red wine?
+Let's attempt to answer this question by using the below dataset.
+
+## Dataset
+This tidy data set contains 1,599 red wines with 11 variables on the chemical properties of the wine. At least 3 wine experts rated the quality of each wine, providing a rating between 0 (very bad) and 10 (very excellent).
+The description for the data can be found here:
+https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityInfo.txt
+
+
+```{r packages, echo=FALSE, warning=FALSE, message=FALSE}
+#{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+
+# Load all of the packages for this project
+library(ggplot2)
+#install.packages('gridExtra')
+library(gridExtra)
+#install.packages('corrplot')
+library(corrplot)
+#install.packages("PerformanceAnalytics")
+library(PerformanceAnalytics)
+#install.packages('dplyr')
+library(dplyr)
+
+#library(utils)
+#library(methods)
+#library(stats)
+#library(lattice)
+#library(MASS)
+library(memisc)
+
+library(RColorBrewer)
+
+```
+
+```{r shared functions}
+plotAcid <- function(df, colsize=1, selcolor='blue', selbin=30){
+    p1 = qplot(data = df, x = fixed.acidity, bins=selbin, fill = I(selcolor), col =I('black'))
+    p2 = qplot(data = df, x = volatile.acidity, bins=selbin, fill = I(selcolor), col =I('black'))
+    p3 = qplot(data = df, x = citric.acid, bins=selbin, fill = I(selcolor), col =I('black'))
+    p4 = qplot(data = df, x = chlorides, bins=selbin, fill = I(selcolor), col =I('black'))
+    p5 = qplot(data = df, x = pH, bins=selbin, fill = I(selcolor), col =I('black'))
+    grid.arrange(p1, p2, p3, p4, p5, ncol=colsize)
+}
+
+plotDensity <- function(df, colsize=1, selcolor='green', selbin=30){
+    p1 = qplot(data = df, x = residual.sugar, bins=selbin, fill = I(selcolor), col =I('black'))
+    p2 = qplot(data = df, x = alcohol, bins=selbin, fill = I(selcolor), col =I('black'))
+    p3 = qplot(data = df, x = density, bins=selbin, fill = I(selcolor), col =I('black'))
+    grid.arrange(p1, p2, p3, ncol=colsize)
+}
+
+plotSulfur <- function(df, colsize=1, selcolor='red', selbin=30){
+    p1 = qplot(data = df, x = sulphates, bins=selbin, fill = I(selcolor), col =I('black'))
+    p2 = qplot(data = df, x = free.sulfur.dioxide, bins=selbin, fill = I(selcolor), col =I('black'))
+    p3 = qplot(data = df, x = bound.sulfur.dioxide, bins=selbin, fill = I(selcolor), col =I('black'))
+    p4 = qplot(data = df, x = total.sulfur.dioxide, bins=selbin, fill = I(selcolor), col =I('black'))
+    grid.arrange(p1, p2, p3, p4, ncol = colsize)
+}
+
+boxplotQuality <- function(element){
+    ggplot(data = rwdf, aes(x=factor(quality), y=element, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2) +
+    scale_y_continuous(name = name(element))
+}
+
+sumAcid <- function(df){
+    summary(df[c('fixed.acidity','volatile.acidity','citric.acid','chlorides','pH')])
+}
+
+sumDensity <- function(df){
+    summary(df[c('residual.sugar','alcohol','density')])
+}
+
+sumSulfur <- function(df){
+    summary(df[c('sulphates','free.sulfur.dioxide','bound.sulfur.dioxide','total.sulfur.dioxide')])
+}
+
+resPlot <- function(fit){
+    par(mfrow = c(2, 2))  # Split the plotting panel into a 2 x 2 grid
+    plot(fit)  # Plot the model information
+}
+```
+
+```{r Load_the_Data}
+# Load the Data
+rwdf <- read.csv('wineQualityReds.csv')
+str(rwdf)
+```
+
+Taking a first look on the 11 wine element variables and the quality score data. X is just a running number to match the corresponding row element.
+
+# Univariate Plots Section
+
+Since we're trying to determine the quality of the red wine, let's start by looking at the distribution of this variable.
+
+```{r Univariate_Plots1}
+print ("table")
+table(rwdf$quality)
+print ("summary")
+summary(rwdf$quality)
+```
+
+```{r Univariate_Plots2, fig.asp=0.4}
+qplot(data = rwdf, x = quality, fill = I('orange'), col =I('black'), binwidth=1)
+```
+
+On the first look, it appears that the quality data are in a normal distribution shape with most wines having the quality score of 5 or 6. The best wine in this bunch appears to have a score of 8 and the lowest at a score of 3. 
+Let's now look at the other variables and what their distribution looks like as compared to the one we have seen for quality and check if there's any hint of which variable might prove to be the most influential in determining the quality of the wine produced.
+According to reference, the taste of wine is determined by acidity, sweetness, body(alcohol), tannin and fruitiness. 
+Hence I've grouped all the acidic elements and the alkaline one as well to check how these elements determine the final pH of these red wines.
+
+```{r Univariate_Plots3}
+sumAcid(rwdf)
+```
+
+```{r Univariate_Plots4,fig.asp=0.9}
+plotAcid(rwdf)
+```
+
+Starting with fixed acidity, it appears that most of the wines are between 7.1 to 9.2 g / dm^3 with a normal distribution spread and there's outlier value on 15.9 g/dm^3 which is almost double the median or mean for this variable.
+Next onto volatile acidity, majority of the values are between 0.39 to 0.64 g / dm^3 with a normal distribution spread and again with an outlier value on 1.58 which is three times the median or mean.
+For the measure of citric acid we see a bimodal shape with most wines ranging near to 0.09 to 0.42 g / dm^3 with the peaks at 0.01 and 0.049 g / dm^3. And the outlier for this variable is at 1.0 g/dm^3 which is four times the mean or median.
+On the other side, we're seeing seeing most of the wines contains chlorides of around 0.07 to 0.09 g/ dm^3. The shape appears to be skew right but there's a huge outlier with a value of 0.611 g/dm^3 which is around 7-8 times the mean or median.
+With the combination of these acidic and alkalic elements, we're seeing a pH levels of mostly 3.21 to 3.4 pH for majority of the wines with a normal distribution shape and with long tail on both sides of the chart with a min value of 2.74 pH to max of 4.01 pH. 
+Apart from the chart for citric acid, the rest of the four is showing a close to normal distribution charts. These are the elements that control the freshness and the flavor for the wines and also it's saltiness, thus these elements are expected to have a high influence on the taste and therefore the quality of the red wines. But we're also seeing big numbers in the outliers for most of these elements, so it would be interesting to note if any of these outliers are somehow related to the quality of the red wines.
+Next let's move onto the second group which determines the sweetness and the body(alcohol) of these wines.
+
+
+```{r Univariate_Plots5}
+sumDensity(rwdf)
+```
+
+```{r Univariate_Plots6,fig.asp=0.9}
+plotDensity(rwdf)
+```
+
+We see a skew right chart pattern for residual sugar, with majority of the wines containing 1.9 to 2.6 g/dm^3 which shouldn't be considered sweet as compared to the benchmark value of 45 g/dm^3 and the outlier value for this variable is 15.5 g/dm^3 which is 7 times the mean or median. 
+For alcohol, the majority is in the range of 9.5 to 11.10 % with a skew right distribution shape as well and a max value of 14.9 %
+As for density, we're seeing the majority of the values in 0.9956 to 0.9978 g/cm^3 which is very similar to water (1 gm/dm^3) and a normal distribution shape.
+It's worth noting that there's a high outlier value for residual sugar similar to what we have seen for the acidic and chloride elements, so let's find a way to explore that in the later section.
+
+```{r Univariate_Plots7}
+rwdf$bound.sulfur.dioxide <- with(rwdf, total.sulfur.dioxide - free.sulfur.dioxide)
+```
+
+
+```{r Univariate_Plots8}
+sumSulfur(rwdf)
+```
+
+```{r Univariate_Plots9, fig.asp=0.9}
+plotSulfur(rwdf)
+```
+
+Looking at the elements of sulfur which can help with the prevention of oxidation and microbial growth, we're seeing a skew right pattern for all four of these charts.
+Starting with sulphates, the majority of the red wines contains 0.55 to .73 g/dm^3 with an outlier of 2.0 g/dm^3 which is three times the mean or median. 
+Whereas for the free sulfur dioxide, the majority are in the 7 to 15.87 mg / dm^3 with an outlier of 72 g/dm^3 which is four times the mean and median.
+For the bound sulfur dioxide new variable, we're seeing the majority of the values is from 12 g/dm^3 to 39 g/dm^3 with an outlier of 251.5 g/dm^3 which is roughly 8-10 times the mean or median.
+Thus for the total sulfur dioxide which have the range of 22 to 62 mg/dm^3, we're also seeing a high outlier of 289 g/dm^3 which is 7 times the mean or median. This is interesting to correlate because those wines with the range of over 50 mg / dm^3 having an impact of the taste and smell of the red wine. 
+So I wonder where does those outlier value falls in the terms of the quality score for the red wines. To do that, we're going to add a category to the red wines and since the current quality score nicely divides the red wines into three grouping, let's call them worst, average and best.
+
+
+### Best and Worst Group comparison analysis
+With the red wines now divided into three groups of best, average and worst based on the quality score, let's run through the same analysis again to see if we can spot if the outlier affects the quality in any meaningful way.
+
+```{r Univariate_Plots10}
+## assigning each quality to a group
+rwdf$group <- ifelse(rwdf$quality >= 7, 'best', ifelse(rwdf$quality<=4,'worst','average'))
+rwdf$group <- factor(rwdf$group)
+table(rwdf$group)
+
+```
+
+```{r Univariate_Plots11}
+print ('Best Group')
+sumAcid(rwdf[rwdf$group=='best',])
+```
+
+```{r Univariate_Plots12, fig.height=3, fig.width=12}
+plotAcid(rwdf[rwdf$group=='best',],5)
+```
+
+Using the best group as a template let's look at where the majority of the values are in and also the outlier (min or max) and comparing them to the other group.
+For fixed acidity majority ranges between 7.4 g/dm^3 to 8.7 g/dm^3 with the max of 15.6 g/dm^3.
+Follow by volatile acidity, 0.3 - 0.49 g/dm^3 with max of 0.915 g/dm^3.
+Next up is citric acid, 0.3 - 0.49 g/dm^3 with max of 0.76 g/dm^3.
+Subsequently, chlorides, 0.062 - 0.085 g/dm^3 with max of 0.358 g/dm^3.
+Finally looking at pH, with majority in 3.2 - 3.38 pH and max of 3.78 pH.
+
+
+```{r Univariate_Plots13}
+print ('Average Group')
+sumAcid(rwdf[rwdf$group=='average',])
+```
+
+```{r Univariate_Plots14, fig.height=3, fig.width=12}
+plotAcid(rwdf[rwdf$group=='average',],5)
+```
+
+Using the same template, let's compare that with the average group.
+For fixed acidity majority ranges between 7.1 g/dm^3 to 8.25 g/dm^3 with the max of 15.9 g/dm^3 - lower majority range, higher max.
+Follow by volatile acidity, 0.41 - 0.64 g/dm^3 with max of 1.33 g/dm^3 - higher majority range, higher max.
+Next up is citric acid, 0.09 - 0.4 g/dm^3 with max of 0.79 g/dm^3 - lower majority range, higher max.
+Subsequently, chlorides, 0.071 - 0.091 g/dm^3 with max of 0.611 g/dm^3 - higher majority range, almost double up in max of best group.
+Finally looking at pH, with majority in 3.21 - 3.4 pH and max of 4.01 pH - higher majority range and higher max.
+
+```{r Univariate_Plots15}
+print ('Worst Group')
+sumAcid(rwdf[rwdf$group=='worst',])
+```
+
+```{r Univariate_Plots16, fig.height=3, fig.width=12}
+plotAcid(rwdf[rwdf$group=='worst',], 5)
+```
+
+Using the same template, let's again compare the best group with the worst group.
+For fixed acidity majority ranges between 6.8 g/dm^3 to 8.4 g/dm^3 with the max of 12.5 g/dm^3 - lower majority range and higher max.
+Follow by volatile acidity, 0.565 - 0.8825 g/dm^3 with max of 1.58 g/dm^3 - higher majority range and almost double the max.
+Next up is citric acid, 0.02 - 0.27 g/dm^3 with max of 1.0 g/dm^3 - lower majority range and higher max.
+Subsequently is chlorides, 0.0685 - 0.0945 g/dm^3 with max of 0.61 g/dm^3 - higher majority range and almost double the max.
+Finally looking at pH, with majority in 3.3 - 3.5 pH and max of 3.9 pH - higher majority range and higher max.
+
+Looking at the pattern for the majority range and the max outlier, there seems to be a similarity for the average and worst group against the best group. This looks interesting so let's do the same analysis for the next group of variables.
+
+```{r Univariate_Plots17}
+print ('Best Group')
+sumDensity(rwdf[rwdf$group=='best',])
+```
+
+```{r Univariate_Plots18, fig.height=3, fig.width=9}
+plotDensity(rwdf[rwdf$group=='best',],3)
+```
+
+This is the second group.
+Looking at the residual sugar, the majority is in 2.0 - 2.7 g/dm^3 with a max of 8.9 g/dm^3.
+Follow by alcohol with majority in 10.8 to 12.2 % and a max of 14%.
+Finally by density, with majority in 0.9947 to 0.9973 g/cm^3 and a max of 1.0032 g/cm^3.
+
+```{r Univariate_Plots19}
+print ('Average Group')
+sumDensity(rwdf[rwdf$group=='average',])
+```
+
+```{r Univariate_Plots20, fig.height=3, fig.width=9}
+plotDensity(rwdf[rwdf$group=='average',],3)
+```
+
+Comparing this to the average group.
+Looking at the residual sugar, the majority is in 1.9 - 2.6 g/dm^3 with a max of 15.5 g/dm^3 - lower majority range and almost double the max.
+Follow by alcohol with majority in 9.5 to 10.9 % and a max of 14.9% - lower majority range and higher max.
+Finally by density, with majority in 0.9958 to 0.9979 g/cm^3 and a max of 1.0037 g/cm^ - slightly higher majority range and slightly higher max.
+
+```{r Univariate_Plots21}
+print ('Worst Group')
+sumDensity(rwdf[rwdf$group=='worst',])
+```
+
+```{r Univariate_Plots22, fig.height=3, fig.width=9}
+plotDensity(rwdf[rwdf$group=='worst',],3)
+```
+
+Comparing the best against the worst group next.
+Looking at the residual sugar, the majority is in 1.9 - 2.95 g/dm^3 with a max of 12.9 g/dm^3 - wider range for majority and higher max.
+Follow by alcohol with majority in 9.6 to 11 % and a max of 13.1% - lower majority range and lower max.
+Finally by density, with majority in 0.9957 to 0.9977 g/cm^3 and a max of 1.0010 g/cm^3 - slightly higher majority range and slightly lower max.
+
+For this group, the pattern aren't so clear cut between the groups.
+So let's do one more analysis for the final group.
+
+```{r Univariate_Plots23}
+print ('Best Group')
+sumSulfur(rwdf[rwdf$group=='best',])
+```
+
+```{r Univariate_Plots24, fig.height=3, fig.width=12}
+plotSulfur(rwdf[rwdf$group=='best',],4)
+```
+
+Looking at the third group now.
+Starting with sulphates, the majority is in 0.65 to 0.82 g/dm^3 with a max of 1.36 g/dm^3.
+Next, free sulfur dioxide with majority in 6 - 18 mg/dm^3 and max of 54 mg/dm^3.
+After that by bound sulfur dioxide with majority in 9 to 22 gm/dm^3 and a max of 251.5 gm/dm^3.
+Finally by total sulfur dioxide with majority in 17 to 43 mg/dm^3 and a max of 289 mg/dm^3.
+
+```{r Univariate_Plots25}
+print ('Average Group')
+sumSulfur(rwdf[rwdf$group=='average',])
+```
+
+
+```{r Univariate_Plots26, fig.height=3, fig.width=12}
+plotSulfur(rwdf[rwdf$group=='average',],4)
+```
+
+Comparing this to the average group.
+Starting with sulphates, the majority is in 0.54 to 0.7 g/dm^3 with a max of 1.98 g/dm^3 - lower majority range and higher max.
+Next, free sulfur dioxide with majority in 8 - 22 mg/dm^3 and max of 72 mg/dm^3 - higher majority range and higher max.
+After that by bound sulfur dioxide with majority in 13 to 43 gm/dm^3 and a max of 128 gm/dm^3 - higher majority range and lower max.
+Finally by total sulfur dioxide with majority in 24 to 65 mg/dm^3 and a max of 165 mg/dm^3 - higher majority range and lower max.
+
+```{r Univariate_Plots27}
+print ('Worst Group')
+sumSulfur(rwdf[rwdf$group=='worst',])
+```
+
+```{r Univariate_Plots28, fig.height=3, fig.width=12}
+plotSulfur(rwdf[rwdf$group=='worst',],4)
+```
+
+Doing the best vs worst group comparison analysis now.
+Starting with sulphates, the majority is in 0.495 to 0.6 g/dm^3 with a max of 2 g/dm^3 - lower majority range and higher max.
+Next, free sulfur dioxide with majority in 5 - 15.5 mg/dm^3 and max of 41 mg/dm^3 - lower majority range and lower max.
+After that by bound sulfur dioxide with majority in 7.5 to 29 gm/dm^3 and a max of 107 gm/dm^3 - wider range for the majority and lower max.
+Finally by total sulfur dioxide with majority in 13.5 to 48 mg/dm^3 and a max of 119 mg/dm^3 - wider range for the majority and lower max.
+
+There appears to be some similarity for the average and worst group against the best group in terms of the max pattern but nothing conclusive yet.
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+There are 1,599 red wines with 12 features (fixed acidicity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, alcohol and quality) in the dataset. pH describes how acidic the wine is from a scale of 0 (very acidic) to 14 (very basic). And the quality score is between 0 (worst) to 10 (best).
+Other observations
+* Most red wines are in the quality score of 5 and 6.
+* Most of the wines are acidic with pH ranging from 3.2 to 3.4
+* Alcohol for the majority of the wines are from 9.5 to 11.10%
+* Most red wines aren't sweet with residual sugar content of 1.9 to 2.6 g/dm^3 
+
+### What is/are the main feature(s) of interest in your dataset?
+The main features of the data set are the quality score, acidic elements (fixed acidity, volatile acidity, citric acid) and alcohol. The assumptions here is that we should be able to build a predictive model to benchmark the quality of red wine plus the other variables in the data set.
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+Fixed acidity, volatile acidity, citric acid and alcohol should be the main features for the predictive model. Although residual sugar could also potentially be a main factor according to the wine elements reference.
+
+### Did you create any new variables from existing variables in the dataset?
+I've created the bound sulfur dioxide by removing the free sulfur dioxide from the total sulfur dioxide as an extra element to analyze for meaningful correlation to the quality of the red wines.
+I've also added a group variable to divide the quality score into a best, average and worst grouping.
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+By breaking down the dataset into three groups and comparing the pattern amongst best, average and worst group, I was suprised to find similar patterns when comparing the average and worst group against the best group in terms of the majority range and the max outlier value pattern
+There's no need to do any further adjustment as the dataset are already in a tidy data format.
+
+# Bivariate Plots Section
+We have a good overview of the data structure in the previous section so now let's looking at the relationship between the main variables to get a sense of how does quality can get influenced by the other elements.
+
+```{r Bivariate_Plots1, warning=FALSE, fig.width=12, fig.height=6}
+chart.Correlation(rwdf[, -which(names(rwdf) %in% c('group', 'X') )], histogram=TRUE, pch=19)
+```
+
+Let's start by looking at the scatterplot matrix, we're interested to see which variables which have some significant influence to the values of the quality score. 
+Based on the first view, we can see that alcohol (0.48), volatile acidity (-0.39), sulphates (0.25), citric acid (0.23), bound sulfur acid (-0.21), total sulfur dioxide (-0.19), density (-0.17),  chlorides (-0.13) and fixed acidity (0.12) could be important when analysing quality.
+This means that the rest of the elements such as pH (-0.06), free sulfur dioxide (-0.05) and residual sugar (0.01). It's quite suprising to see that pH which accounts for the acidity didn't register as a significant influence to the quality score. And as for residual sugar, we already know that the current measurement range are not in the sweet range and is probably undetectable to the taste bud and therefore is not so significant, so this just confirms that it is indeed so. It's also a bit surprising to see that free sulfur dioxide didn't have a high correlation with the quality, that should imply that the bound sulfur dioxide is the leading factor in terms of the correlation.
+
+```{r Bivariate_Plots2, fig.width=10, fig.height=5}
+res <- cor(rwdf[, -which(names(rwdf) %in% c('group') )])
+
+cex.before <- par("cex")
+par(cex = 0.65)
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(res, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=45, #Text label color and rotation
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE, tl.cex = 1/par("cex"), 
+    cl.cex = 1/par("cex")
+         )
+par(cex = cex.before)
+```
+
+Plotting the correlation again but this time with the correlation plot so that we can see the correlation coefficient details with color highlights to make it easier to refer to later when we're doing the analysis for the rest of the variables. So let's start by analysing the variable with the highest correlation value first which would be alcohol with a correlation coefficient of 0.48 before doing the rest.
+
+```{r Bivariate_Plots3, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=alcohol, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+Starting with alcohol vs quality boxplot, there appears to be a pattern that the higher quality wines tend to have a higher median in terms of alcohol %. This is especially evident looking at the red wines from quality score from 5 to 8. However for those red wines with quality score of 3 & 4, this doesn't seems to be the case. Let's check the stats to be sure.
+
+```{r Bivariate_Plots4}
+tapply(rwdf$alcohol, rwdf$quality, summary)
+```
+
+Looking at the median values it would appears that those with quality score of 3, 9.925% is close to the median of those with quality score of 4 with 10%. 
+And comparing the median for the red wines with quality score of 5 and a median of 9.7%, it's pretty close to the median of the red wine with quality score of 6 which is 10.50%.
+For the quality score of 7 & 8, we can see the median values are 11.50 vs 12.15%.
+I wonder if this is a consistent pattern across other variables as well.
+Let's proceed the analysis with volatile acidity next.
+
+```{r Bivariate_Plots5, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=volatile.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+The pattern for volatile acidity appears to be more consistent where we can see a continuous lower median moving from quality score 3 to quality score of 8. The interquartile range also appears to be shrinking from left to the right of the barplot with the higher quality red wines having lower acetic acid in the wine which means that in terms of taste, they contain less the unpleasant vinegar taste.
+
+
+```{r Bivariate_Plots6}
+tapply(rwdf$volatile.acidity, rwdf$quality, summary)
+```
+
+However for the two higher quality red wines with scores of 7 and 8 have the same median value of 0.37 g/dm^3 vs 0.37 g/dm^3. The quality score 8 red wine also shows the smallest interquartile range value, could this consistency somehow relates to the higher quality? Perhaps by looking at more barplots of other elements can help to answer this question.
+So let's do sulphates next.
+
+
+```{r Bivariate_Plots7, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=sulphates, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+For this element, we can see that there's a slight uptrend where the higher quality wines have a higher sulphates content. There also appears to be rather similar values in terms of the median for quality score 3 & 4, 5 & 6 and 7 & 8. Let's look at the stats to be sure.
+
+```{r Bivariate_Plots8}
+tapply(rwdf$sulphates, rwdf$quality, summary)
+```
+
+Red wines with a score of 3 have a median of 0.545 vs the median of 0.56 g/dm^3 for the score of 4 red wines. 
+As for the group of red wines with the score of 5 and 6, their median was comparable at 0.58 g/dm^3 vs 0.64 g/dm^3.
+For the best group of score 7 & 8, the median were the same at 0.74 g/dm^3.
+Let's move on to the next element in the list which is citric acid.
+
+```{r Bivariate_Plots9, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=citric.acid, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+For citric acid we do see a pattern as well, with red wines with higher quality score also seeing a higher median and also those with higher quality score of 7 and 8 shows a lower interquartile range. The interquartile range for quality score of 3 appears to be the largest. Let's check the stats next.
+
+```{r Bivariate_Plots10}
+tapply(rwdf$citric.acid, rwdf$quality, summary)
+```
+
+The 3rd quartile for quality score 3 is 0.3275 g/dm^3 which is almost ten times it's median value. Looking closer the at the median values, we can again see we can divide them down to three groups, with the worst group (score 3 & 4) - median 0.035 and 0.09 g/dm^3, average group (score of 5 & 6) - median 0.23 and 0.26 g/dm^3 and the finally the best group (score of 7 & 8) - median of 0.4 and 0.42 g/dm^3 .
+Let's look at bound sulfur dioxide next.
+
+```{r Bivariate_Plots11, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=bound.sulfur.dioxide, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+For bound sulfur dioxide, we do not see a uptrend or downtrend pattern but it appears that the lowest quality group has the lowest median, and the average group has the highest median values and the best group also has median value in between these two groups. And the best group does show smaller IQR too.
+Let's check the stats too.
+
+```{r Bivariate_Plots12}
+tapply(rwdf$bound.sulfur.dioxide, rwdf$quality, summary)
+```
+
+For the worst group (score 3 & 4) - median 11.00 and 14.00 mg/dm^3, average group (score of 5 & 6) - median 29 and 19 mg/dm^3 and the finally the best group (score of 7 & 8) - median of 15 and 11 mg/dm^3 . Looking at the median number, it's easier to see the bigger difference in the median value for the worst and average group. The median for the best group also follows this patterns with score 7 & 8 seeing median values of 15 vs 11 mg/dm^3.
+Let's continue and look a few more variables.
+
+
+```{r Bivariate_Plots13, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=total.sulfur.dioxide, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+Looking at total sulfur dioxide, the pattern looks pretty similar to what we saw with bound sulfur dioxide which shouldn't be that suprisingly since we did extract the bound sulfur dioxide values out from the total sulfur dioxide by minusing out the free sulfur dioxide. Let's do the stats to check if it is consistent at that level as well.
+
+```{r Bivariate_Plots14}
+tapply(rwdf$total.sulfur.dioxide, rwdf$quality, summary)
+```
+
+For the worst group (score 3 & 4) - median 15 and 26 mg/dm^3, average group (score of 5 & 6) - median 47 and 35 mg/dm^3 and the finally the best group (score of 7 & 8) - median of 27 and 21.5 mg/dm^3 . Looking at the median number, it seems that the gap in the worst group is larger whereas the gap for the best group is slightly smaller. This is rather surprisingly as we would have expected to see the same pattern as the bound sulfur dioxide. It appears that the median score of the quality score of 4 was higher and the median score for the 8 group is also higher for this variable, that's probably due to the free sulfur dioxide value causing the difference which could have explained why we're seeing a lower correlation coeffiecient value with the total vs the bound sulfur dioxide.
+Moving on to the next variable.
+
+```{r Bivariate_Plots15, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=density, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+Although the difference in value appears to be rather small across the quality score of 3 to 8, we do however see a suprising pattern across the scores. There appears to be an overall downtrend with another sub downtrend seen amongst the three groups. Let's check out the stats to see the actual difference.
+
+```{r Bivariate_Plots16}
+tapply(rwdf$density, rwdf$quality, summary)
+```
+
+For the worst group (score 3 & 4) - median 0.9976 and 0.9965 g/dm^3, average group (score of 5 & 6) - median 0.997 and 0.9966 g/dm^3 and the finally the best group (score of 7 & 8) - median of 0.9958 and 0.9942 g/dm^3. Looking at the median number, there's no observable clear patterns in the gaps amongst the three groups. So eventhough from the outset we didn't anticipate that density would have any meaningful influence on the quality score, the does however appears to be a meaningful pattern that we can see in the median pattern across the quality score.
+Let's move on to the next factor.
+
+```{r Bivariate_Plots17, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=chlorides, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+We can observe a downtrend for chlorides moving from left ot right of the chart, and except for the red wines for quality score 3, we're also seeing a very tight IQR for the rest. 
+Let's take a look at the stats next.
+
+```{r Bivariate_Plots18}
+tapply(rwdf$chlorides, rwdf$quality, summary)
+```
+
+For the worst group (score 3 & 4) - median 0.0905 and 0.08 g/dm^3, average group (score of 5 & 6) - median 0.081 and 0.078 g/dm^3 and the finally the best group (score of 7 & 8) - median of 0.073 and 0.0705 g/dm^3. Except for the quality score median being slighly higher than the quality score 4, otherwise we do notice a downtrend median values across the scores.
+Moving onto the final element.
+
+```{r Bivariate_Plots19, fig.height=5, fig.width=10}
+ggplot(data = rwdf, aes(x=factor(quality), y=fixed.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2)
+```
+
+For this element, we see a slight uptrend pattern but suprisingly the fixed acidity median for the score 8 group is not the highest but appears to be between score group 3 to 6 and the score group 7. The 8 score group also shows a rather large IQR. Thus the high variability in this element probably cause a lower correlation with the quality score perhaps.
+Let's check the stats next.
+
+```{r Bivariate_Plots20}
+tapply(rwdf$fixed.acidity, rwdf$quality, summary)
+```
+
+Looking closer at the median number, we see the same median number 7.5 g/dm^3 for score 3 & 4 group. 
+Group 5 & 6 has a median value of 7.8 vs 7.9 g/dm^3.
+And the best group of score 7 & 8 has the median value of 8.8 vs 8.25 g/dm^3. The IQR for this group is also pretty large with 7.25 to 10.225 g/dm^3.
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+Using the correlation as the first step, we did see a strong correlation between quality score and alcohol, volatile acidity, fixed acidity and citric acid. But surprisingly the pH variable which can be used to measure the acidity in wine doesn't appear to have any strong correlation with the quality score of the red wines. Residual sugar which we initially thought could be meaningful was also discounted as a contributing factor in this correlation analysis.
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+We found out that besides the acidic elements and alcohol, the quality score seems to be correlated also to density - which indirectly measure percent of alcohol and sugar content, the grouping of sulphates, total sulfur dioxide, bound sulfur dioxide - which acts as a antimicrobial and antioxidant and chlorides - which affects the saltiness of the wine.
+Examining the boxplot of these correlated elements also shows an interesting sub pattern where there appears to be an overall trend (up or down) across the quality score, and another sub trend if we group the quality scores into worst (3 & 4), average (5 & 6) and best (7 & 8) which sometimes break the overall trend.
+
+### What was the strongest relationship you found?
+So the usual suspects from the initial exploration still holds true here in which we see a strong correlation with quality and alcohol, volatile acidity, citric acid and fixed acidity. Additionally from the bivariate analysis part, we would also be adding in density, sulphates, total sulfur dioxide, bound sulfur dioxide and chlorides to build the predictive model.
+
+# Multivariate Plots Section
+Moving onto the next level of analysis, let's see what happens when we have the main factors being plotted in one plot.
+Using alcohol as the base, we're going to plot the values against the acidic elements and also chloride after that and grouping the dataset by quality.
+
+```{r Multivariate_Plots1, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=alcohol, y=volatile.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6) 
+```
+
+For volatile acidity vs alcohol, we can see that the data points moved from top left to the bottom right from left to right.
+So there's definitely an observable pattern between teh different quality score red wines. And as for this pair, there's only a 0.2 correlation coefficient, so wondering if we will see a more obvious or perhaps less obvious pattern when we do the same analysis with the other acidic elements next.
+
+```{r Multivariate_Plots2, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf[rwdf$volatile.acidity < quantile(rwdf$volatile.acidity,0.95),], aes(x=alcohol, y=volatile.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=21) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Trimming the dataset to show only the 95th percentile, we can see a clearer pattern moving from top left to bottom right for alcohol vs volatile acidity across the different quality scores. So it appears that the preferred red wines has higher alcohol % and has lower acetic acid which mean lower vinegar like taste.
+
+```{r Multivariate_Plots3, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=alcohol, y=citric.acid, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Using citric acid and alcohol as the next comparison baseline, the movements of the data points are not so clear as we move from left to the right of the quality score, there could be a hint of slight positive trend from bottom left to the top right across the scores. For citric acid and alcohol the correlation is even weaker at 0.11, hence perhaps that's why the pattern is slightly weaker here too.
+
+```{r Multivariate_Plots4, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf[rwdf$citric.acid < quantile(rwdf$citric.acid, 0.95), ], aes(x=alcohol, y=citric.acid, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=21) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+So let's trim the data to show the plot for 95th percentile to check if there's a more obvious correlation here.
+And indeed after doing so, we can roughly see an improvement in the pattern which shows that uptrend in the citric acid content as we move from the lower end of the quality scale to the higher end but this is only true if we ignore a lot of the data points which are still on the lower part of the plot. So perhaps the acetic acid which adds to the freshness of the red wine is a very hard to detect and does not improve the overall taste in any distinguishable way.
+Moving onto to the next one.
+
+```{r Multivariate_Plots5, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=alcohol, y=fixed.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Looking at fixed acidity against alcohol, there's also a weaker pattern seen here, with the data points moving slightly from left to right. Again this could be due to the weaker correlation value between the two variables which is at -0.06.
+
+```{r Multivariate_Plots6, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=alcohol, y=chlorides, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+For the chlorides vs alcohol boxplot, we're seeing a left to right movement for the dataset, however we do detect higher level of noises above 0.2 g/dm^3.
+I wonder will we see the same pattern across the other groups as well?
+Let's do the density vs alcohol next.
+
+```{r Multivariate_Plots7, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf[rwdf$chlorides < quantile(rwdf$chlorides, 0.95),], aes(x=alcohol, y=chlorides, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=21) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Trimming the data down to 95th percentile, we can see that moving from left to right, the variability seems to be wider across the chlorides value but eventually settle more toward the lower right end with lower chlorides value (less salty) and higher alcohol %.
+
+```{r Multivariate_Plots8, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=alcohol, y=density, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+For alcohol vs density, we're expecting to see hopefully a clear pattern considering that the two elements have a high correlation coefficient of 0.5. Although we do see a slight left top left to the bottom right movement across the quality scores, there appears to be a lot of noise starting from quality scores of 5 to 7.
+
+```{r Multivariate_Plots9, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf[rwdf$density < quantile(rwdf$density, 0.95),], aes(x=alcohol, y=density, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=21) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Triming the dataset to the 95th percentile, the slight movement becomes more apparents although still pretty hard to spot. Since density refers to the balance between alcohol and sugar in the red wines, however we do not see much difference in the density measure across the quality score which probably explain why it's hard to spot any clear pattern in these plots.
+Let's break away from using alcohol as the baseline and comparing the sulfuric elements amongst themselves and see if we can derive a clearer pattern from there.
+
+```{r Multivariate_Plots10, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=sulphates, y=total.sulfur.dioxide, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Suprisingly as well, sulphates have a very low correlation to neither total sulfur dioxide and bound sulfur dioxide, with correlation coefficient of 0.04 and 0.03. So looking at the pattern here, there's very slight varition that can be clearly observed, but we do see that there's still a slight left to right movement across the quality scores.
+Moving on to the next element.
+
+```{r Multivariate_Plots11, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf[rwdf$total.sulfur.dioxide < quantile(rwdf$total.sulfur.dioxide, 0.95),], aes(x=sulphates, y=total.sulfur.dioxide, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Zooming into the 95th percentile shows that that the worst group and the best group of red wines have a similir pattern and the ones in the middle have a higher variability for this variable. Which somehow means that lower and better quality red wines has very low concentrations (<50 ppm) and is therefore not detectable to the taster in terms of taste or smell, so it's a bit suprising to see that we see a red wines with quality score of 4 to 7 has more red wines over these values.
+
+```{r Multivariate_Plots12, fig.width=12, fig.height=3, warning=FALSE}
+ggplot(data = rwdf, aes(x=sulphates, y=bound.sulfur.dioxide, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Here we can see very similar patterns in the plot itself and also across the quality scores which almost mirrors the pattern that we saw for the total sulfur dioxide.
+
+
+```{r Multivariate_Plots13, fig.width=13, fig.height=3, warning=FALSE}
+ggplot(data = rwdf[rwdf$bound.sulfur.dioxide < quantile(rwdf$bound.sulfur.dioxide,0.95),], aes(x=sulphates, y=bound.sulfur.dioxide, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=22) +
+    facet_wrap(~factor(quality), ncol=6)
+```
+
+Even by trimming the dataset to the 95th percentile, we're still seeing a very similar pattern here.
+We have seen the plots for all the main elements and do notice there's a slight trend going across all the charts, hence let's put this together to try to build a predictive model and check what does that looks like.
+
+```{r Multivariate_Plots14}
+m1 <- lm(I(quality) ~ I(alcohol), data = rwdf)
+m2 <- update(m1, ~ . + volatile.acidity)
+m3 <- update(m2, ~ . + citric.acid)
+m4 <- update(m3, ~ . + fixed.acidity)
+m5 <- update(m4, ~ . + sulphates)
+m6 <- update(m5, ~ . + bound.sulfur.dioxide)
+m7 <- update(m6, ~ . + total.sulfur.dioxide)
+m8 <- update(m7, ~ . + density)
+m9 <- update(m8, ~ . + chlorides)
+
+mtable(m1, m2, m3, m4, m5, m6, m7, m8, m9, sdigits = 3)
+```
+
+Using the significant factors to build up the linear model, we can see that this model is able to explain up to 35.7% of the quality scores in the red wines.
+Some low correlation coefficient factors such as citric acid and total sulfur dioxide somehow has no impact on the R^2 value. 
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+We see a strong correlation still between quality and volatile acidity, fixed acidity and alcohol. We also see some meaningful correlation here between quality and chlorides.
+
+### Were there any interesting or surprising interactions between features?
+I was suprised to see that citric acid doesn't appear to have a clear pattern when plotted with alcohol and facetting with quality score. 
+And it also appears to have very low impact to the R^2 value of the linear model.
+Also I was suprised to see that there appears to very low correlation between sulphates to total sulfur dioxide and bound sulfur dioxide. When plotted against quality, we can't see any discernible pattern moving across the quality scores.
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the \
+strengths and limitations of your model.
+I've created a linear model based on the earlier correlation plot using the variables which shows significant p-value as variables in the linear model. 
+However using this model, it's only capable of predicting 35.7% of the population for the quality score, hence it's definitely worst off than tossing a random coin.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r Plot_One, fig.width=8, fig.height=4}
+qplot(data = rwdf, x = quality, fill = I('orange'), col =I('black'), binwidth=1) +
+    labs(y = 'Number of red wines', x='Quality score', title ='Red Wines Quality') +
+    scale_x_continuous(breaks=seq(3,8,1)) +
+    scale_y_continuous(breaks=seq(0,700,100)) +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Description One
+The dataset of red wines with 1,599 bottles are normally distributed with scores ranging from 3 to 8. There's a disporpotionately high majority of the red wines centered on this distribution, hence this could make the tasks of analyzing the elements which determines good quality red wines a bit more difficult.
+
+### Plot Two
+```{r Plot_Two, fig.width=12, fig.height=6}
+p1 <- ggplot(data = rwdf, aes(x=factor(quality), y=alcohol, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2) +
+    labs(title='Quality by Alcohol Percentage', y = 'Alcohol percentage', x = 'Red Wine Quality') +
+    theme(plot.title = element_text(hjust = 0.5))
+p2 <- ggplot(data = rwdf, aes(x=factor(quality), y=volatile.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3) +
+    geom_boxplot(colour = "black", alpha=1/2) +
+    labs(title='Quality by Volatile Acidity', y = 'Acetic Acid g/dm^3', x = 'Red Wine Quality') +
+    theme(plot.title = element_text(hjust = 0.5))
+
+grid.arrange(p1,p2)
+
+```
+
+### Description Two
+Alcohol and volatile acidity have the strongest correlation with quality, each with the correlation coefficient of 0.49 and -0.39 which can be interpreted as a weak to slighlty moderate uphill linear relationship and a weak downhill linear relationship. We would need to use these two elements along with other significant values to build a predictive model for quality.
+
+### Plot Three
+```{r Plot_Three, fig.width=12, fig.height=4}
+ggplot(data = rwdf[rwdf$volatile.acidity < quantile(rwdf$volatile.acidity,0.95),], aes(x=alcohol, y=volatile.acidity, color=factor(quality))) +
+    geom_jitter(alpha=1/3, shape=21) +
+    facet_wrap(~factor(quality), ncol=6) +
+    labs(title='Volatile Acidity by Alcohol', y = 'Acetic Acid g/dm^3', x = 'Alcohol Percentage', color='Red Wine Quality') +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Description Three
+The 95th percentile plot for volatile acidity by alcohol faceted by quality still shows a weak linear pattern to clearly predict the red wine quality. So eventhough using all these variables to build a predictive model, we're only roughly able to get it right one third of a time.
+------
+
+# Reflection
+
+> **Tip**: Here's the final step! Reflect on the exploration you performed and
+the insights you found. What were some of the struggles that you went through?
+What went well? What was surprising? Make sure you include an insight into
+future work that could be done with the dataset.
+
+> **Tip**: Don't forget to remove this, and the other **Tip** sections before
+saving your final work and knitting the final report!
+
+This red wines data set contains 1,599 red wines with 12 variables. I started by understanding the distribution of the individual variables and trying to link any useful variables to correlate to the quality of the red wines. I explored the outliers correlation to the quality and also try a few methods, i.e. grouping the red wines by the scores and other trial and error method to try to establish a clear relationship between the variables and the quality of these red wines. Eventually, I made a simplified linear model using the limited variables on hand to build the predictive model.
+
+There seems to be a clear trend when plotting the boxplot of the correlated elements against quality. And we even saw a sub trend within those plot which should mean there's some established patterns between those variables. However upon doing deeper correlation analysis, there doesn't appear to be a clear and strong enough linear relationship between the variables. And as most of the variables are already in a normal distributed model, there's not much transformation options that I can do to change the data to look for a different angle in the relationship. This can be concluded by looking final R^2 value in the model which can only explains 37.5% of the population, it's clear that I'm still missing useful variables or data to help me improve this model further.
+
+To improve on the dataset, we would need more data preferably those which aren't all focused on the center of the distribution so that we would have more data points on the worst and best area of the scale. And looking at the final R^2, perhaps we are still missing some variables to start with. Based on the reference from the internet, there's also a measurement of tannin which can contribute to the texture of the red wine and even fruitiness which determines the taste of the red wine. So if we're able to get additional variables plus data points, it would be interesting to revisit the analysis and see if we're able to get a more accurate predictive model.
+
+# References
+1. data set options - https://docs.google.com/document/d/1qEcwltBMlRYZT-l699-71TzInWfk4W9q5rTCSvDVMpc/pub?embedded=true
+1. rubric - https://review.udacity.com/#!/projects/3165188753/rubric
+1. markdown syntax - https://daringfireball.net/projects/markdown/syntax
+1. create effective plots - https://docs.google.com/document/d/1-f3wM3mJSkoWxDmPjsyRnWvNgM57YUPloucOIl07l4c/pub
+1. Wine fun facts - https://www.wiine.me/blog/10-amazing-facts-about-wine/
+1. R Style guide - http://adv-r.had.co.nz/Style.html
+1. Basic wine characteristics - http://winefolly.com/review/wine-characteristics/
+1. Residual sugar in wine - http://winefolly.com/review/sugar-in-wine-chart/
+1. Correlation matrix - http://www.sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-format-and-visualize-a-correlation-matrix-using-r-software
+1. Change font size in corrplot - https://stackoverflow.com/questions/26574054/how-to-change-font-size-of-the-correlation-coefficient-in-corrplot
+1. Check residual plots for regression analysis - http://blog.minitab.com/blog/adventures-in-statistics-2/why-you-need-to-check-your-residual-plots-for-regression-analysis
+1. visualizing residual - https://drsimonj.svbtle.com/visualising-residuals
+1. Interpreting low R-squared and low p-value - http://blog.minitab.com/blog/adventures-in-statistics-2/how-to-interpret-a-regression-model-with-low-r-squared-and-low-p-values
+1. https://stackoverflow.com/questions/12208090/selecting-columns-in-r-data-frame-based-on-those-not-in-a-vector
