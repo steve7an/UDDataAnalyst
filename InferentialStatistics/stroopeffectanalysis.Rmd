@@ -1,0 +1,143 @@
+Test a Perceptual Phenomenon - Stroop Effect by Steve T
+========================================================
+
+### Abstract
+In psychology, the Stroop effect is a demonstration of interference in the reaction time of a task. When the name of a color (e.g., "blue", "green", or "red") is printed in a color that is not denoted by the name (e.g., the word "red" printed in blue ink instead of red ink), naming the color of the word takes longer and is more prone to errors than when the color of the ink matches the name of the color. The effect is named after John Ridley Stroop, who first published the effect in English in 1935.
+
+### Dataset
+In a Stroop task, participants are presented with a list of words, with each word displayed in a color of ink. The participant???s task is to say out loud the color of the ink in which the word is printed. The task has two conditions: a congruent words condition, and an incongruent words condition. In the congruent words condition, the words being displayed are color words whose names match the colors in which they are printed: for example RED, BLUE. In the incongruent words condition, the words displayed are color words whose names do not match the colors in which they are printed: for example PURPLE, ORANGE. In each case, we measure the time it takes to name the ink colors in equally-sized lists. Each participant will go through and record a time from each condition.
+Each row of the dataset contains the performance for one participant, with the first number their results on the congruent task and the second number their performance on the incongruent task. There are a total of 24 observation per category.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+
+library(ggplot2)
+#install.packages('tidyr')
+#library(tidyr)
+library(dplyr)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+sdf <- read.csv('stroopdata.csv')
+str(sdf)
+```
+
+
+# Questions For Investigation Section
+
+### 1. What is our independent variable? What is our dependent variable?
+
+* Independent variable - the congruency of the word condition
+* Dependent variable - the response time to name the ink color in equally-sized list. 
+
+### 2. What is an appropriate set of hypotheses for this task? What kind of statistical test do you expect to perform?
+
+$\overline{u}_\Delta$ : The mean for the paired difference.
+
+$H_0:\overline{u}_\Delta = 0$ - The time taken for the participant to name the ink color for both congruent and incongruent condition should be the same.
+$H_A:\overline{u}_\Delta \neq 0$ - The time taken for the participant to name the ink color for both congruent and incongruent condition is different.
+
+As we do not know the population standard deviation of this test plus the sample size is smaller than 30, we're looking at conducting a t-test here.
+So because we're interested to see if the interference due to the incongruent word condition actually caused any difference in the response time for the participant, and the same participant is administered to both of the congruent and incongruent word conditions, this introduces a paired t-test because the two samples are related. 
+Finally, since we're checking for difference in the response time for the participant, the mean response time can indeed be smaller or larger thus this is a two tail t-test.
+
+### 3. Report some descriptive statistics regarding this dataset.
+### 4. Provide one or two visualizations that show the distribution of the sample data. 
+
+
+```{r Investigation1}
+summary(sdf$Congruent)
+```
+
+
+```{r Investigation2, fig.asp=0.5}
+ggplot(data=sdf, aes(x=Congruent, fill=I('blue'))) +
+    geom_histogram(bins=24) +
+    scale_x_continuous(breaks=seq(8,23,1)) +
+    labs(x = 'Time in sec', y='Participant count', title = 'Participant\'s response time under Congruent condition') +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+For the congruent histogram, we can see there are quite a few of gaps between the value, and overall the distribution does resemble a normal distribution. There's no obvious outlier in the plot. Let's check on the incongruent plot next. The median and the mean is pretty near with the median value of 14.36 and mean value of 14.05
+
+```{r Investigation3}
+summary(sdf$Incongruent)
+```
+
+
+```{r Investigation4, fig.asp=0.5}
+ggplot(data=sdf, aes(x=Incongruent, fill=I('red'))) +
+    geom_histogram(bins=24) +
+    scale_x_continuous(breaks=seq(15,36,1)) +
+    labs(x = 'Time in sec', y='Participant count', title = 'Participant\'s response time under Incongruent condition') +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+In terms of pattern, we see a approximate normal distribution here and contrasting this to the congruent plot, we're seeing closer value and lesser gap, except for the outlier data point further away to the right with a max of 35.26. The median and the mean for the incongruent data points are also very close, with a median value of 21.02 and mean value of 22.02
+Let's explore with a side by side comparison for the two via a boxplot.
+
+```{r Investigation5, fig.asp=0.5}
+sdf.dat <- gather(sdf, congruency, time)
+
+ggplot(data=sdf.dat, aes(x=congruency, y=time)) +
+    geom_boxplot(aes(color=congruency)) +
+    labs(x = 'Congruency Type', y='Response time in sec', title = 'Participant\'s response time against Congruency condition') +
+    theme(legend.position="none", plot.title = element_text(hjust = 0.5))
+```
+
+Contrasting the two box plot, we can see that the median for incongruent is much higher than the congruent one, and the whole of IQR box for the incongruent never touches the one for the congruent at all. Using the boxplot, we can also see that for the Incongruent value are actually affected by two outlier points.
+So we know that the median for the two groups are different but is it significantly different? Let's confirm this on the next section via the t-test.
+
+### 5. Now, perform the statistical test and report your results. What is your confidence level and your critical statistic value? Do you reject the null hypothesis or fail to reject it? Come to a conclusion in terms of the experiment task. Did the results match up with your expectations?
+
+```{r Investigation6}
+print ("Comparing the congruent response time to the incongruent response time:")
+
+# first calculate the mean difference between the two sets
+sdf.meandif <- sdf$Congruent - sdf$Incongruent
+
+sdf.meandif.mean <- round(mean(sdf.meandif),3)
+cat ('Mean of the difference:', sdf.meandif.mean ,"\n")
+
+sdf.meandif.sd <- round(sd(sdf.meandif),3)
+cat ('Std Dev of the difference:', sdf.meandif.sd, "\n")
+
+sdf.meandif.n <- length(sdf.meandif)
+cat ('n of the mean dif:', sdf.meandif.n, "\n")
+
+sdf.meandif.dof <- sdf.meandif.n - 1
+cat ('Degree of freedom of the mean dif:', sdf.meandif.dof, "\n")
+
+sdf.meandif.se <- sdf.meandif.sd / sqrt(sdf.meandif.n)
+cat ('Std error of the mean dif:', sdf.meandif.se, "\n")
+
+# based on 95% confidence level
+sdf.meandif.lowercl <- -2.069
+sdf.meandif.uppercl <- 2.069
+cat ('95% confidence level t-critical value lower bound:', sdf.meandif.lowercl, " and upper bound:", sdf.meandif.uppercl, "\n")
+
+sdf.meandif.critval <- round(sdf.meandif.mean / sdf.meandif.se,3)
+cat ('t-critical value of the mean dif:', sdf.meandif.critval, "\n")
+
+
+```
+
+Based on the t-critical value, -8.021 was way lower than the lower bound of the t-critical confidence level,-2.069, we can reject the null.
+
+
+### 6. What do you think is responsible for the effects observed? Can you think of an alternative or similar task that would result in a similar effect? Some research about the problem will be helpful for thinking about these two questions!
+
+
+------
+
+# Reflection
+
+
+
+# References
+1. data set options - https://drive.google.com/file/d/0B9Yf01UaIbUgQXpYb2NhZ29yX1U/view
+1. rubric - https://review.udacity.com/#!/rubrics/71/view
+1. instruction - https://docs.google.com/document/d/1-OkpZLjG_kX9J6LIQ5IltsqMzVWjh36QpnP2RYpVdPU/pub?embedded=True
+1. latex format - http://web.ift.uib.no/Teori/KURS/WRK/TeX/symALL.html
+1. t-table reference - https://s3.amazonaws.com/udacity-hosted-downloads/t-table.jpg
