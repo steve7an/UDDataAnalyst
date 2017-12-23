@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 
 library(ggplot2)
 #install.packages('tidyr')
-#library(tidyr)
+library(tidyr)
 library(dplyr)
 ```
 
@@ -55,7 +55,8 @@ summary(sdf$Congruent)
 ggplot(data=sdf, aes(x=Congruent, fill=I('blue'))) +
     geom_histogram(bins=24) +
     scale_x_continuous(breaks=seq(8,23,1)) +
-    labs(x = 'Time in sec', y='Participant count', title = 'Participant\'s response time under Congruent condition') +
+    labs(x = 'Time in sec', y='Participant count', 
+         title = 'Participant\'s response time under Congruent condition') +
     theme(plot.title = element_text(hjust = 0.5))
 ```
 
@@ -70,7 +71,8 @@ summary(sdf$Incongruent)
 ggplot(data=sdf, aes(x=Incongruent, fill=I('red'))) +
     geom_histogram(bins=24) +
     scale_x_continuous(breaks=seq(15,36,1)) +
-    labs(x = 'Time in sec', y='Participant count', title = 'Participant\'s response time under Incongruent condition') +
+    labs(x = 'Time in sec', y='Participant count', 
+         title = 'Participant\'s response time under Incongruent condition') +
     theme(plot.title = element_text(hjust = 0.5))
 ```
 
@@ -82,7 +84,8 @@ sdf.dat <- gather(sdf, congruency, time)
 
 ggplot(data=sdf.dat, aes(x=congruency, y=time)) +
     geom_boxplot(aes(color=congruency)) +
-    labs(x = 'Congruency Type', y='Response time in sec', title = 'Participant\'s response time against Congruency condition') +
+    labs(x = 'Congruency Type', y='Response time in sec', 
+         title = 'Participant\'s response time against Congruency condition') +
     theme(legend.position="none", plot.title = element_text(hjust = 0.5))
 ```
 
@@ -92,7 +95,7 @@ So we know that the median for the two groups are different but is it significan
 ### 5. Now, perform the statistical test and report your results. What is your confidence level and your critical statistic value? Do you reject the null hypothesis or fail to reject it? Come to a conclusion in terms of the experiment task. Did the results match up with your expectations?
 
 ```{r Investigation6}
-print ("Comparing the congruent response time to the incongruent response time:")
+print("Comparing the congruent response time to the incongruent response time:")
 
 # first calculate the mean difference between the two sets
 sdf.meandif <- sdf$Congruent - sdf$Incongruent
@@ -104,7 +107,7 @@ sdf.meandif.sd <- round(sd(sdf.meandif),3)
 cat ('Std Dev of the difference:', sdf.meandif.sd, "\n")
 
 sdf.meandif.n <- length(sdf.meandif)
-cat ('n of the mean dif:', sdf.meandif.n, "\n")
+cat ('Count of the mean dif:', sdf.meandif.n, "\n")
 
 sdf.meandif.dof <- sdf.meandif.n - 1
 cat ('Degree of freedom of the mean dif:', sdf.meandif.dof, "\n")
@@ -115,25 +118,44 @@ cat ('Std error of the mean dif:', sdf.meandif.se, "\n")
 # based on 95% confidence level
 sdf.meandif.lowercl <- -2.069
 sdf.meandif.uppercl <- 2.069
-cat ('95% confidence level t-critical value lower bound:', sdf.meandif.lowercl, " and upper bound:", sdf.meandif.uppercl, "\n")
+cat ('95% confidence level t-critical value lower bound:', sdf.meandif.lowercl, 
+     " and upper bound:", sdf.meandif.uppercl, "\n")
 
 sdf.meandif.critval <- round(sdf.meandif.mean / sdf.meandif.se,3)
 cat ('t-critical value of the mean dif:', sdf.meandif.critval, "\n")
 
+# Use pt and make it two-tailed.
+sdf.meandif.pval <- 2 * pt(sdf.meandif.critval, df = sdf.meandif.dof, lower.tail = TRUE, log.p =FALSE)
+cat ('p-value value of the mean dif:', sdf.meandif.pval, "\n")
 
 ```
 
-Based on the t-critical value, -8.021 was way lower than the lower bound of the t-critical confidence level,-2.069, we can reject the null.
+We use the default confidence level at 95%
+Based on the t-critical value, -8.021 was way lower than the lower bound of the t-critical confidence level,-2.069, so we can reject the null.
+
+```{r Investigation7}
+# Verify using the t.test function and to get the p-value
+t.test(x = sdf$Congruent, y = sdf$Incongruent, alternative = c("two.sided"),mu = 0,
+       paired=TRUE, conf.level = 0.95)
+
+```
+
+We ran the t-test function to verify that the t-statistics value and the p-value that was calculated is correct.
+Based on these values, the stroop effect clearly caused a significant delay in the response time of the participants when the words and colors are incongruent.
+I would have anticipated a delay in the response time because we have seen that there's a large gap in the median values between the two data set and intuitively it makes sense since we're splitting our mental resources to do two tasks reading the words and color vs reading just the words and assuming that the colors will match the word.
 
 
 ### 6. What do you think is responsible for the effects observed? Can you think of an alternative or similar task that would result in a similar effect? Some research about the problem will be helpful for thinking about these two questions!
 
+Based on the experiment, J. Ridley Stroop developed two experimental theories to explain this occurence:
+The first theory was called - Speed of Processing Theory: He showed that the Interference occurs because, people are able to read words much quicker and to name the colour of the word is much more complex.
+The second theory was called - Selective Attention Theory: Interference occurs because; naming the actual colour of the words requires much more attention than reading the words. 
+So in other words, we're more adept at reading words than colors because we're very used to doing that but unless our job or daily task revolves around naming colors, otherwise we would be slower in naming color versus just reading the name of the color. Thus in the situation of the incongruent condition, we would require more time to read the color and try to ignore the printed word.
+There are also other conflict tasks such as the Stroop effect, such as the Eriksen Flanker task, in which researchers try to determine the response time of the participants were a result of the proximity of the noise to the target or the similarity of the noise to the target. Basically the researchers wanted to know if the participants would get distracted by other elements in the search task if the other elements were closer to the target as compared to the other elements being very similar to the target.
+In another lesser known interference test, the Simon effect refers to the finding that reaction times are usually faster, and reactions are usually more accurate, when the stimulus occurs in the same relative location as the response, even if the stimulus location is irrelevant to the task. Simon's original explanation for the effect was that there is an innate tendency to respond toward the source of stimulation.
+All three tasks demonstrated that the response time was shortest when the conditions are congruent.
 
 ------
-
-# Reflection
-
-
 
 # References
 1. data set options - https://drive.google.com/file/d/0B9Yf01UaIbUgQXpYb2NhZ29yX1U/view
@@ -141,3 +163,7 @@ Based on the t-critical value, -8.021 was way lower than the lower bound of the 
 1. instruction - https://docs.google.com/document/d/1-OkpZLjG_kX9J6LIQ5IltsqMzVWjh36QpnP2RYpVdPU/pub?embedded=True
 1. latex format - http://web.ift.uib.no/Teori/KURS/WRK/TeX/symALL.html
 1. t-table reference - https://s3.amazonaws.com/udacity-hosted-downloads/t-table.jpg
+1. What is Stroop effect - https://d2l.deakin.edu.au/d2l/eP/presentations/presentation_preview_popup.d2l?presId=67655
+1. Flanker task - https://en.wikipedia.org/wiki/Eriksen_flanker_task
+1. Stroop effect and Flanker task - https://stroopeffectandflankertask.weebly.com/the-eriksen-flanker-task.html
+1. Simon effect - https://en.wikipedia.org/wiki/Simon_effect
