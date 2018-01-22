@@ -1,0 +1,6 @@
+1. final_project.html - html version for the jupyter notebook
+2. final_project.ipynb - the jupyter notebook for the project
+3. my_classifier.pkl - final selected classifier
+4. my_dataset.pkl - clean up dataset
+5. my_feature_list.pkl - final list of features to use
+6. poi_id - python script containing all the codes
